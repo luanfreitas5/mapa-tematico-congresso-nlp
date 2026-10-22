@@ -17,6 +17,7 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: \.svg$  # figuras geradas pelo matplotlib têm espaços finais legítimos
       - id: end-of-file-fixer
       - id: check-yaml
         args: ["--unsafe"]   # mkdocs.yml usa a tag !!python/name: (pymdownx.superfences)
