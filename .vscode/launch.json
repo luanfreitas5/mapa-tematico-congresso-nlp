@@ -1,0 +1,44 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Pipeline: ingest",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/main.py",
+      "args": ["ingest", "--sources", "deputies"],
+      "env": { "PYTHONHASHSEED": "42" },
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Pipeline: preprocess",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/main.py",
+      "args": ["preprocess"],
+      "env": { "PYTHONHASHSEED": "42" },
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Pipeline: topics (ementas)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/main.py",
+      "args": ["topics", "--corpus", "propositions"],
+      "env": { "PYTHONHASHSEED": "42" },
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Pytest: arquivo atual",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "--no-cov", "-x"],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}

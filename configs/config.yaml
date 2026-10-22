@@ -1,0 +1,31 @@
+# Configurações gerais do projeto (validadas por src/config/settings.py).
+version: "0.1.0"
+project_name: mapa-tematico-congresso-nlp
+random_seed: 42
+
+# Ingestão da API de Dados Abertos da Câmara dos Deputados.
+ingestion:
+  base_url: https://dadosabertos.camara.leg.br/api/v2
+  legislature_id: 57            # 57ª legislatura (2023-2027)
+  start_date: 2023-02-01
+  end_date: 2025-12-31
+  proposition_types: [PT, PL, PLP, PEC, MPV]
+  page_size: 100                # máximo aceito pela API
+  timeout_seconds: 30
+  max_retries: 5
+  backoff_seconds: 1.0
+  max_workers: 8                # chamadas paralelas em endpoints por item
+  user_agent: mapa-tematico-congresso-nlp/0.1 (portfolio; luan.mgf@gmail.com)
+
+# Pré-processamento de textos.
+preprocessing:
+  min_tokens_summary: 5         # ementas com menos tokens são descartadas
+  min_tokens_speech: 30
+  max_speech_chars: 5000        # trunca discursos longos (limite do encoder)
+
+# Redes.
+networks:
+  max_authors_per_proposition: 30   # ignora proposições "de bancada" (ex.: PECs com 171 assinaturas)
+  min_party_members_per_vote: 3     # mínimo de votos Sim/Não para definir a posição do partido
+  min_common_votings: 20            # votações em comum para criar aresta entre partidos
+  min_edge_weight: 0.5              # alinhamento mínimo (0 a 1) para manter a aresta

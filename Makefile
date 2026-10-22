@@ -52,9 +52,11 @@ lint: ## Lint com ruff (Format + Check)
 typecheck:  ## Type checking estático (basedPyright)
 	uv run basedpyright
 
+# PYSEC-2026-3447 (setuptools 81.0.0): dependência transitiva do torch 2.11, que
+# limita a versão; a correção (83.0.0) não é instalável. Reavaliar ao atualizar o torch.
 security:  ## Análise de segurança (bandit + pip-audit)
 	uv run bandit -r src -c pyproject.toml
-	uv run pip-audit
+	uv run pip-audit --ignore-vuln PYSEC-2026-3447
 
 deadcode:  ## Detecta código morto (vulture)
 	uv run vulture src

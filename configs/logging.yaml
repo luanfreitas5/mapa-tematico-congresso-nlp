@@ -1,0 +1,4 @@
+# Configuração de logging (console com rich + arquivo com rotação diária).
+level: INFO                     # DEBUG | INFO | WARNING | ERROR
+backup_count: 30                # dias de logs mantidos
+file_format: "%(asctime)s \t %(levelname)s \t %(name)s \t %(message)s"

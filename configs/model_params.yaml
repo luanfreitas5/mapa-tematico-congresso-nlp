@@ -1,0 +1,37 @@
+# Hiperparâmetros de embeddings, BERTopic e avaliação.
+embeddings:
+  model_name: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+  batch_size: 64
+  normalize: true
+  device: null  # null = auto (GPU se disponível, CPU caso contrário) | "cpu" | "cuda" | "cuda:0" | "cuda:1" | ...
+
+umap:
+  n_neighbors: 15
+  n_components: 5
+  min_dist: 0.0
+  metric: cosine
+
+hdbscan:
+  min_cluster_size: 30
+  min_samples: 10
+  metric: euclidean
+  cluster_selection_method: eom
+
+vectorizer:
+  ngram_range: [1, 2]
+  min_df: 5
+
+bertopic:
+  top_n_words: 10
+  nr_topics: null               # null = sem redução posterior de tópicos
+  reduce_outliers: false
+
+topics_over_time:
+  nr_bins: 24
+
+evaluation:
+  coherence_metrics: [c_v, c_npmi]
+  top_n_words: 10
+  bootstrap_resamples: 2000
+  review_sample_per_topic: 5    # documentos por tópico na revisão manual
+  review_max_topics: 20

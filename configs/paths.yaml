@@ -1,0 +1,8 @@
+# Caminhos relativos à raiz do repositório (resolvidos em src/config/settings.py).
+bronze: data/bronze
+silver: data/silver
+gold: data/gold
+reports: reports
+figures: reports/figures
+review: reports/review
+logs: logs
