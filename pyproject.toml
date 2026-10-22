@@ -1,0 +1,305 @@
+# =============================================================================
+# pyproject.toml — fonte única de verdade para dependências e configuração de
+# ferramentas. Alinhado ao CLAUDE.md (Data Science Projects).
+# Gerenciador: uv. O lock file (uv.lock) DEVE ser commitado (`uv lock`).
+# =============================================================================
+
+[project]
+name = "mapa-tematico-congresso-nlp"
+version = "0.1.0"
+description = "Modelagem de tópicos (BERTopic) e redes (NetworkX) com dados abertos da Câmara dos Deputados."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Luan Freitas", email = "luan.mgf@gmail.com" }]
+keywords = [
+    "nlp",
+    "topic-modeling",
+    "bertopic",
+    "networkx",
+    "camara-dos-deputados",
+    "dados-abertos",
+    "portuguese",
+]
+classifiers = [ # https://pypi.org/classifiers/
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Natural Language :: Portuguese (Brazilian)",
+]
+
+# --- Dependências de runtime (núcleo leve: ingestão, pré-processamento, redes) -
+# A pilha pesada de PLN (torch, sentence-transformers, BERTopic) fica no extra
+# `nlp`, para que CI, testes e ingestão não baixem gigabytes de wheels.
+dependencies = [
+    # Configuração, validação e ambiente (src/config/, src/schemas/)
+    "pydantic>=2.7",                # validação tipada de configurações
+    "pydantic-settings>=2.3",       # segredos opcionais via .env
+    "python-dotenv>=1.0",           # carregamento do .env
+    "pyyaml>=6.0",                  # leitura dos YAML em configs/
+    "pandera[polars]>=0.20",        # contratos de dados por camada (bronze/silver/gold)
+
+    # Dados
+    "polars>=1.0",                  # manipulação de dados (preferido sobre pandas)
+    "pyarrow>=16.0",                # leitura/escrita Parquet
+    "numpy>=1.26",                  # arrays (embeddings, bootstrap)
+
+    # Ingestão (API REST da Câmara)
+    "httpx>=0.27",                  # cliente HTTP com timeout e transporte mockável
+    "tenacity>=8.3",                # retry com backoff exponencial
+
+    # Redes
+    "networkx>=3.2",                # grafos, centralidades e comunidades
+    "scipy>=1.11",                  # autovetores esparsos usados pelo NetworkX
+
+    # Visualização e terminal
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    "rich>=13.7",                   # logging e barras de progresso
+]
+
+[project.optional-dependencies]
+# Pilha de PLN: embeddings, modelagem de tópicos e coerência. `uv sync --extra nlp`
+nlp = [
+    "torch>=2.4",                   # declarado aqui para o uv.sources abaixo valer
+    "sentence-transformers>=3.0",   # embeddings multilíngues
+    "bertopic>=0.16",               # pipeline de tópicos (UMAP + HDBSCAN + c-TF-IDF)
+    "umap-learn>=0.5.6",            # redução de dimensionalidade
+    "hdbscan>=0.8.38",              # clusterização por densidade
+    "scikit-learn>=1.4",            # CountVectorizer do BERTopic
+    "gensim>=4.3.3",                # métricas de coerência (c_v, c_npmi)
+]
+
+[project.urls]
+Homepage = "https://github.com/luanfreitas5/mapa-tematico-congresso-nlp"
+Documentation = "https://luanfreitas5.github.io/mapa-tematico-congresso-nlp/"
+Repository = "https://github.com/luanfreitas5/mapa-tematico-congresso-nlp"
+
+[tool.uv]
+# O projeto não é instalado como pacote: `src/` é a raiz de importação (ver
+# CLAUDE.md, "Import style"). O pytest resolve os imports por
+# `pythonpath = ["src"]` e `src/main.py` insere `src/` em `sys.path`.
+package = false
+required-environments = [
+    "sys_platform == 'win32' and platform_machine == 'AMD64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+
+# --- Dependências de desenvolvimento (não publicadas; PEP 735) --------------
+[dependency-groups]
+dev = [
+    # Lint + format
+    "ruff>=0.5",
+    # Type checking (roda no CI, não no pre-commit)
+    "basedpyright>=1.13",
+    # Segurança (roda no CI)
+    "bandit>=1.7",
+    "pip-audit>=2.7",
+    "detect-secrets>=1.5",
+    # Qualidade / complexidade / docstrings
+    "vulture>=2.11",
+    "refurb>=2.0",
+    "xenon>=0.9",
+    "radon>=6.0",
+    "interrogate>=1.7",
+    # Testes
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "hypothesis>=6.100",
+    # Notebooks
+    "nbqa>=1.8",
+    "nbstripout>=0.7",
+    "ipykernel>=6.29",
+    "jupyterlab>=4.2",
+    # Workflow
+    "pre-commit>=3.7",
+    "commitizen>=4.0",
+    # Documentação
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.25",
+    # Profiling (use sob demanda)
+    "scalene>=1.5",
+]
+
+# =============================================================================
+# RUFF — lint + format (substitui flake8/isort/black)
+# =============================================================================
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort (organização de imports)
+    "N",      # pep8-naming
+    "UP",     # pyupgrade (sintaxe moderna)
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "RET",    # flake8-return
+    "ARG",    # flake8-unused-arguments
+    "PTH",    # flake8-use-pathlib
+    "NPY",    # regras específicas de NumPy
+    "PERF",   # perflint
+    "RUF",    # regras do próprio Ruff
+    "PL",     # pylint (subconjunto)
+    "TRY",    # tryceratops — boas práticas de exceções
+]
+ignore = [
+    "PLR0913", # muitos argumentos — comum em pipelines
+    "PLR0917", # idem (posicionais)
+    "PLR2004", # "magic value" em comparação — thresholds de modelo
+    "TRY003",  # mensagem longa em exceção
+    "PLC0415", # import fora do topo — de propósito, para dependências do extra
+               # `nlp` (torch, bertopic, gensim) carregadas sob demanda
+    "RUF001",  # caractere ambíguo em string — tipografia pt-BR intencional
+    "RUF002",  # idem, em docstrings
+    "RUF003",  # idem, em comentários
+]
+
+[tool.ruff.lint.isort]
+# `src/` é a raiz de importação: os pacotes de primeira parte são os
+# diretórios dentro dele — não "src" em si.
+known-first-party = [
+    "config",
+    "constants",
+    "embeddings",
+    "evaluation",
+    "exceptions",
+    "ingestion",
+    "networks",
+    "pipelines",
+    "preprocessing",
+    "schemas",
+    "storage",
+    "topics",
+    "utils",
+    "visualization",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ARG", "PLR2004", "S101"]
+"notebooks/*" = ["E402", "F401", "F821", "NPY002"]
+"src/main.py" = ["E402"]        # `src/` entra no sys.path antes de importar
+
+[tool.ruff.format]
+docstring-code-format = true
+
+# =============================================================================
+# BASEDPYRIGHT — type checking estático (roda no CI)
+# =============================================================================
+[tool.basedpyright]
+pythonVersion = "3.10"
+typeCheckingMode = "standard"
+include = ["src", "tests"]
+extraPaths = ["src"]
+exclude = ["**/__pycache__", "notebooks", "data", "models", "reports", "logs"]
+reportMissingTypeStubs = false
+# Dependências do extra `nlp` são importadas sob demanda e podem não estar
+# instaladas no ambiente de checagem.
+reportMissingImports = "warning"
+
+# =============================================================================
+# BANDIT — análise de segurança (roda no CI)
+# =============================================================================
+[tool.bandit]
+exclude_dirs = ["tests", "notebooks", ".venv"]
+# B101 (assert): usados apenas para estreitamento de tipo, após validação real.
+skips = ["B101"]
+
+# =============================================================================
+# VULTURE — detecção de código morto
+# =============================================================================
+[tool.vulture]
+min_confidence = 80
+paths = ["src"]
+exclude = ["notebooks/"]
+ignore_decorators = ["@field_validator", "@model_validator"]
+ignore_names = ["cls"]
+
+# =============================================================================
+# REFURB — sugestões de modernização
+# =============================================================================
+[tool.refurb]
+ignore = [
+    "FURB126",  # return implícito — às vezes reduz clareza
+]
+
+# =============================================================================
+# PYTEST — testes (unit, integração, property-based)
+# =============================================================================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = [
+    "--strict-markers",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+]
+markers = [
+    "smoke: testes rápidos rodados no pre-commit",
+    "integration: testes de pipeline ponta a ponta",
+    "ml: testes que exigem o extra `nlp` (pulados se ausente)",
+    "slow: testes lentos (pulados por padrão localmente)",
+]
+
+# =============================================================================
+# COVERAGE — meta de cobertura ≥ 80%
+# =============================================================================
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = [
+    "src/main.py",                  # orquestração fina (argparse)
+    "*/__init__.py",
+    # Adaptadores finos sobre o extra `nlp` (torch/BERTopic/gensim): testados
+    # apenas em testes `ml`, que exigem baixar modelos e rodam fora do CI padrão.
+    "src/embeddings/encoder.py",
+    "src/topics/model.py",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+
+# =============================================================================
+# INTERROGATE — cobertura de docstrings
+# =============================================================================
+[tool.interrogate]
+fail-under = 80
+ignore-init-method = true
+ignore-magic = true
+exclude = ["tests", "notebooks", "docs"]
+
+# =============================================================================
+# COMMITIZEN — Conventional Commits + SemVer + CHANGELOG
+# =============================================================================
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+version_files = [
+    "pyproject.toml:version",
+    "configs/config.yaml:version",
+]
+tag_format = "v$version"
+update_changelog_on_bump = true
+major_version_zero = true  # remova quando sair do 0.x

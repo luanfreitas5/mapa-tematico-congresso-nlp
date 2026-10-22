@@ -1,0 +1,23 @@
+site_name: Mapa Temático do Congresso
+site_description: Modelagem de tópicos e redes com dados abertos da Câmara dos Deputados
+repo_url: https://github.com/luanfreitas5/mapa-tematico-congresso-nlp
+theme:
+  name: material
+  language: pt-BR
+  features:
+    - navigation.sections
+    - content.code.copy
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: numpy
+            show_source: false
+nav:
+  - Início: index.md
+  - Arquitetura: arquitetura.md
+  - Avaliação: avaliacao.md
+  - Referência da API: api.md
