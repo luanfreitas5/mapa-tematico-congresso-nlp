@@ -66,12 +66,72 @@ Etapas individuais: `make ingest`, `make preprocess`, `make topics`, `make netwo
 
 ## 📊 Resultados
 
-> ⚠️ Os resultados serão preenchidos após a primeira execução completa. Nenhum número é
-> reportado antes disso.
+Primeira execução completa, sobre o snapshot da API de **2026-10-22** (semente 42). Números
+lidos de `data/gold/` (`coherence_*.parquet`, `doc_topics_*.parquet`, `network_*`).
 
-- Coerência dos tópicos (c_v e c_npmi, média com IC 95% por bootstrap) e revisão manual
-  (proporção de documentos coerentes com IC de Wilson): ver [`docs/avaliacao.md`](docs/avaliacao.md).
-- Figuras em `reports/figures/` (tópicos no tempo, rankings de centralidade).
+### Corpus
+
+| Fonte | Registros brutos | Documentos modelados |
+|---|---|---|
+| Deputados | 882 | — |
+| Proposições (PL, PLP, PEC, MPV) | 17.505 | 17.482 |
+| Discursos | 44.528 | 44.269 |
+| Votações / votos nominais | 34.489 / 415.061 | — |
+
+### Tópicos (BERTopic)
+
+| Corpus | Tópicos (sem ruído) | Documentos no ruído (-1) | c_v (IC 95%) | c_npmi (IC 95%) |
+|---|---|---|---|---|
+| Ementas | 122 | 25,3% | 0,739 [0,702; 0,774] | 0,164 [0,135; 0,192] |
+| Discursos | 125 | 54,1% | 0,666 [0,639; 0,693] | 0,047 [0,022; 0,072] |
+
+IC 95% por bootstrap sobre os tópicos (o tópico -1 é excluído). Os tópicos de ementas são mais
+coerentes e mais bem cobertos que os de discursos, como esperado do registro formulaico das
+ementas.
+
+- **Ementas — maiores tópicos:** Código Penal e crimes (817 docs), educação/LDB (412), datas
+  comemorativas (387), transtorno do espectro autista (361), trânsito (280), imposto de renda
+  (263), Banco Central (252), violência doméstica (249).
+- **Discursos — maiores tópicos:** gestão municipal/prefeitos (1.892), violência contra a
+  mulher (869 e 493, dois tópicos próximos), Rio Grande do Sul (656), Bolsonaro/golpe (559),
+  educação (550 e 437), reforma tributária (481), saúde (443 e 402), religião (385).
+- **Série temporal:** ver a figura abaixo. O volume mensal de ementas oscila bastante (quedas
+  em recessos e picos no início das legislaturas e no fim do ano); tópicos penais lideram quase
+  todo o período, com pico de ~72 documentos/mês em meados de 2025.
+
+![Evolução dos principais tópicos nas ementas](reports/figures/topics_over_time_propositions.png)
+
+### Redes
+
+| Rede | Nós | Arestas | Comunidades |
+|---|---|---|---|
+| Coautoria (deputados) | 617 | 9.230 (peso médio 2,2; máx. 56) | 172 (7 grandes: 177, 83, 56, 48, 33, 31, 21 nós; o resto são nós isolados ou pares) |
+| Alinhamento de votos (partidos) | 22 | 199 (peso médio 0,79) | 2 (13 e 9 partidos) |
+
+- **Coautoria, mais conectados (força):** Evair Vieira de Melo (REPUBLICANOS-ES, 608), Sâmia
+  Bomfim (PSOL-SP, 535), Tabata Amaral (PSB-SP, 516). Por **intermediação** (ponte entre
+  grupos), destacam-se Evair Vieira de Melo (0,196), Flávia Morais (MDB-GO, 0,152) e Amom
+  Mandel (REPUBLICANOS-AM, 0,089).
+- **Estrutura:** a maior comunidade é dominada por PL (79 de 177), UNIÃO, PP e PSD; a segunda
+  se organiza em torno do PT (20 de 83); uma comunidade menor é majoritariamente do PSOL (13
+  de 21). A coautoria segue o campo político, mas com muitas pontes entre partidos.
+- **Alinhamento de votos:** rede quase completa (199 de 231 arestas possíveis, ~86% de
+  densidade), com centralidades muito próximas entre os partidos centrais (AVANTE, MDB, PSD,
+  PODE, PP). Os menos alinhados são NOVO (força 2,5), PL (7,3), PRD e REDE (~12,4). Por ser
+  densa, a centralidade discrimina pouco: a informação útil está nas duas comunidades e nos
+  partidos periféricos.
+- Figuras: `reports/figures/coautoria_strength.png`, `alinhamento_strength.png`,
+  `topics_over_time_speeches.png`.
+
+### Ainda pendente
+
+- **Revisão manual:** as amostras estão em `reports/review/`, mas ainda **não foram rotuladas**
+  (`is_coherent` vazio); a proporção de documentos coerentes com IC de Wilson não foi
+  reportada. Só a coerência automática está disponível ([`docs/avaliacao.md`](docs/avaliacao.md)).
+- **Análise por fatias** (tipo de proposição, ano) e **comparação com uma linha de base** (p. ex.
+  LDA/NMF) ainda não foram feitas; as coerências acima não têm referência de comparação.
+- **Sensibilidade** de `min_edge_weight`, `min_cluster_size` e do limite de 30 autores não foi
+  avaliada.
 
 ## ⚠️ Limitações
 
@@ -84,6 +144,11 @@ Etapas individuais: `make ingest`, `make preprocess`, `make topics`, `make netwo
   `min_edge_weight` influencia as centralidades e deve ser reportado.
 - **Coautoria:** proposições com mais de 30 autores não geram arestas (evita cliques de
   bancada); a escolha afeta a rede.
+- **Acentos perdidos nos termos dos tópicos:** os rótulos saem como `cdigo penal`, `educao`,
+  `providncias`, indicando que o vetorizador do c-TF-IDF descarta caracteres acentuados. Afeta a
+  legibilidade e, possivelmente, as stopwords e a coerência medida; é um defeito a corrigir.
+- **Ruído alto nos discursos:** 54% dos discursos ficam no tópico -1, e há tópicos quase
+  duplicados (violência contra a mulher, educação, saúde).
 - **BERTopic é sensível a hiperparâmetros** (UMAP/HDBSCAN); parte dos documentos cai no tópico
   de ruído (-1). A revisão manual tem um único revisor.
 - Sem inferência causal: centralidade descreve estrutura, não influência.
