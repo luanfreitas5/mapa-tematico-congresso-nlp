@@ -198,7 +198,7 @@ convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ARG", "D", "PLR2004", "S101", "S311"]
-"notebooks/*" = ["E402", "F401", "F821", "NPY002"]
+"notebooks/*" = ["D100", "E402", "F401", "F821", "NPY002"]  # D100: docstring de módulo não se aplica a notebooks
 "src/main.py" = ["E402"]        # `src/` entra no sys.path antes de importar
 
 [tool.ruff.format]
