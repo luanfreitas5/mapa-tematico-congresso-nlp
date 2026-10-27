@@ -11,6 +11,8 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
+from config.logging import CONSOLE
+
 
 def create_progress() -> Progress:
     """Cria a barra de progresso padrão do projeto.
@@ -33,4 +35,5 @@ def create_progress() -> Progress:
         TaskProgressColumn(),
         TimeElapsedColumn(),
         TimeRemainingColumn(),
+        console=CONSOLE,  # mesmo console do RichHandler: logs saem acima da barra
     )

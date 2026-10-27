@@ -1,4 +1,31 @@
-# Configuração de logging (console com rich + arquivo com rotação diária).
-level: INFO                     # DEBUG | INFO | WARNING | ERROR
-backup_count: 30                # dias de logs mantidos
-file_format: "%(asctime)s \t %(levelname)s \t %(name)s \t %(message)s"
+# Configuração única de logging — aplicada por configure_logging() via logging.config.dictConfig.
+version: 1
+disable_existing_loggers: false  # true (padrão) silencia loggers criados em imports anteriores
+
+formatters:
+  console:
+    format: "%(name)s | %(message)s"  # RichHandler já exibe hora, nível e arquivo:linha
+  file:
+    format: "%(asctime)s \t %(levelname)s \t %(name)s \t %(message)s"
+
+handlers:
+  console:
+    "()": config.logging.create_console_handler
+    formatter: console
+  file:
+    "()": config.logging.create_daily_file_handler
+    filename: logs/log.log  # rotacionado à meia-noite para logs/log_YYYY-MM-DD.log
+    backup_count: 30
+    formatter: file
+
+loggers:  # apenas níveis de bibliotecas ruidosas; handlers ficam só no root
+  matplotlib: {level: WARNING}
+  httpx: {level: WARNING}
+  httpcore: {level: WARNING}
+  urllib3: {level: WARNING}
+  sentence_transformers: {level: WARNING}
+  numba: {level: WARNING}
+
+root:
+  level: INFO
+  handlers: [console, file]

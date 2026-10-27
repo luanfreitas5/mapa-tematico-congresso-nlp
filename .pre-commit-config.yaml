@@ -1,7 +1,8 @@
 # =============================================================================
 # .pre-commit-config.yaml — apenas checagens RÁPIDAS, para não criar atrito no
 # commit. Type checking (basedPyright), segurança (bandit) e complexidade
-# (xenon/radon) rodam no CI, conforme o CLAUDE.md.
+# (xenon/radon) rodam no CI e em `make check`, conforme o CLAUDE.md.
+# Após alterar os `rev`, rode `make update-hooks` (pre-commit autoupdate).
 #
 # Setup:
 #   uv run pre-commit install
@@ -63,4 +64,5 @@ repos:
         entry: uv run pytest -m smoke -q --no-cov
         language: system
         pass_filenames: false
+        types: [python]
         stages: [pre-commit]

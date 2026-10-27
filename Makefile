@@ -9,9 +9,9 @@ export PYTHONHASHSEED := 42
 .DEFAULT_GOAL := help
 .PHONY: help init venv install install-nlp install-all \
 	update lock export \
-	lint typecheck security deadcode complexity docstrings modernize quality check \
+	lint format typecheck security quality check \
 	test smoke test-all coverage hooks pre-commit update-hooks release docs docs-serve docs-deploy profile clean cache jupyter notebook add remove tree \
-	ingest preprocess topics networks evaluate pipeline reproduce \
+	ingest preprocess topics networks evaluate pipeline train reproduce \
 	clean-gold clean-silver clean-reports clean-outputs clean-notebooks
 
 help:  ## Lista os alvos disponíveis
@@ -25,14 +25,14 @@ init:  ## Inicializa o projeto (instala dependências + hooks)
 venv:  ## Cria o ambiente virtual (requer: uv)
 	uv venv
 
-install:  ## Instala o núcleo leve (ingestão, pré-processamento, redes) + dev
-	uv sync --dev
+install:  ## Instala o núcleo leve (ingestão, pré-processamento, redes) + todos os grupos de dev
+	uv sync --all-groups
 
 install-nlp:  ## Instala também a pilha de PLN (torch, sentence-transformers, BERTopic, gensim)
-	uv sync --dev --extra nlp
+	uv sync --all-groups --extra nlp
 
 install-all:  ## Instala tudo (todos os extras + dev)
-	uv sync --all-extras --dev
+	uv sync --all-extras --all-groups
 
 update:  ## Atualiza todas as dependências e sincroniza
 	uv lock --upgrade
@@ -44,39 +44,35 @@ lock:  ## Gera/atualiza o uv.lock (commite o arquivo)
 export:  ## Exporta requirements.txt para quem usa pip
 	uv export --no-hashes -o requirements.txt
 
-# --- Qualidade -------------------------------------------------------------
-lint: ## Lint com ruff (Format + Check)
-	uv run ruff format .
-	uv run ruff check --fix .
+# --- Qualidade (espelha o CI) ----------------------------------------------
+lint:  ## Verifica lint e formatação (ruff) sem alterar arquivos
+	uv run ruff check src tests
+	uv run ruff format --check src tests
+
+format:  ## Corrige lint e formata o código (ruff)
+	uv run ruff check --fix src tests
+	uv run ruff format src tests
 
 typecheck:  ## Type checking estático (basedPyright)
 	uv run basedpyright
 
-# PYSEC-2026-3447 (setuptools 81.0.0): dependência transitiva do torch 2.11, que
-# limita a versão; a correção (83.0.0) não é instalável. Reavaliar ao atualizar o torch.
+# PYSEC-2026-3447 e GHSA-xmj3-9gf7-h52w (setuptools 81.0.0): dependência transitiva do torch 2.11, que
+# limita a versão; as correções (83.0.0 / 84.1.0) não é instalável. Reavaliar ao atualizar o torch.
 security:  ## Análise de segurança (bandit + pip-audit)
-	uv run bandit -r src -c pyproject.toml
-	uv run pip-audit --ignore-vuln PYSEC-2026-3447
+	uv run bandit -c pyproject.toml -r src
+	uv run pip-audit --ignore-vuln PYSEC-2026-3447 --ignore-vuln GHSA-xmj3-9gf7-h52w
 
-deadcode:  ## Detecta código morto (vulture)
-	uv run vulture src
-
-complexity:  ## Limites de complexidade (xenon)
+quality:  ## Código morto, modernização, complexidade e docstrings (vulture, refurb, xenon, interrogate)
+	uv run vulture
+	uv run refurb src
 	uv run xenon --max-absolute B --max-modules A --max-average A src
-
-docstrings:  ## Cobertura de docstrings (interrogate)
 	uv run interrogate -v src
 
-modernize:  ## Detecta código redundante (refurb)
-	uv run refurb src
-
-quality: lint typecheck security deadcode complexity docstrings modernize   ## Roda toda a suíte de qualidade (espelha o CI)
-
-check: quality test  ## Roda localmente tudo o que o CI roda (qualidade + testes)
+check: lint typecheck security quality test  ## Roda localmente tudo o que o CI roda
 
 # --- Testes ----------------------------------------------------------------
 test:  ## Roda os testes com cobertura (sem os lentos)
-	uv run pytest -m "not slow"
+	uv run pytest -m "not slow" --cov-report=term-missing
 
 smoke:  ## Roda apenas os smoke tests
 	uv run pytest -m smoke -q --no-cov
@@ -88,9 +84,8 @@ coverage:  ## Gera o relatório de cobertura em HTML
 	uv run pytest -m "not slow" --cov-report=html
 	@echo "Relatório disponível em htmlcov/index.html"
 
-hooks:  ## Instala os hooks do pre-commit
-	uv run pre-commit install
-	uv run pre-commit install --hook-type commit-msg
+hooks:  ## Instala os hooks do pre-commit (pre-commit + commit-msg) e o baseline do detect-secrets
+	uv run pre-commit install --hook-type pre-commit --hook-type commit-msg
 	uv run detect-secrets scan > .secrets.baseline
 
 pre-commit:  ## Roda todos os hooks do pre-commit em todos os arquivos
@@ -119,6 +114,8 @@ evaluate:  ## Etapa 5: amostra de revisão manual (e resumo, se já rotulada)
 	$(RUN) evaluate
 
 pipeline: ingest preprocess topics networks evaluate  ## Executa todas as etapas em sequência
+
+train: topics  ## Alias do template: treina o modelo (BERTopic) sobre a silver
 
 reproduce: install-nlp pipeline  ## Reproduz o estudo do zero (ambiente + pipeline)
 

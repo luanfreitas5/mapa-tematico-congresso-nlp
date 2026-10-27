@@ -66,6 +66,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=list(workflow.CORPORA),
         help="Corpora de texto para tópicos/avaliação",
     )
+    parser.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        default=None,
+        help="Sobrescreve o nível de log de configs/logging.yaml",
+    )
     parser.add_argument("--refresh", action="store_true", help="Ignora o cache bronze")
     return parser.parse_args(argv)
 
@@ -100,8 +106,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         Código de saída (0 = sucesso).
     """
     args = parse_args(argv)
+    configure_logging(args.log_level, args.config_dir / "logging.yaml")
     settings = load_settings(args.config_dir)
-    configure_logging(settings.logging, settings.paths.logs)
     seed_everything(settings.random_seed)
 
     stages = STAGES[:-1] if args.stage == "all" else (args.stage,)

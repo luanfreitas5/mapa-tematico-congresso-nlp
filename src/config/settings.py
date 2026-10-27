@@ -78,14 +78,6 @@ class PathsConfig(_StrictModel):
         return value if value.is_absolute() else ROOT / value
 
 
-class LoggingConfig(_StrictModel):
-    """Parâmetros de logging."""
-
-    level: Literal["DEBUG", "INFO", "WARNING", "ERROR"]
-    backup_count: int = Field(ge=1)
-    file_format: str
-
-
 class EmbeddingsParams(_StrictModel):
     """Parâmetros do encoder de sentenças."""
 
@@ -166,7 +158,6 @@ class Settings(_StrictModel):
     preprocessing: PreprocessingConfig
     networks: NetworksConfig
     paths: PathsConfig
-    logging: LoggingConfig
     model: ModelParams
 
 
@@ -213,8 +204,9 @@ def load_settings(config_dir: Path | None = None) -> Settings:
     Parameters
     ----------
     config_dir : Path, optional
-        Diretório com ``config.yaml``, ``paths.yaml``, ``logging.yaml`` e
-        ``model_params.yaml``; por padrão, ``configs/`` na raiz do repositório.
+        Diretório com ``config.yaml``, ``paths.yaml`` e ``model_params.yaml``
+        (o ``logging.yaml`` é lido por ``config.logging.configure_logging``);
+        por padrão, ``configs/`` na raiz do repositório.
 
     Returns
     -------
@@ -235,7 +227,6 @@ def load_settings(config_dir: Path | None = None) -> Settings:
     directory = config_dir or CONFIGS_DIR
     raw = _read_yaml(directory / "config.yaml")
     raw["paths"] = _read_yaml(directory / "paths.yaml")
-    raw["logging"] = _read_yaml(directory / "logging.yaml")
     raw["model"] = _read_yaml(directory / "model_params.yaml")
     try:
         return Settings(**raw)

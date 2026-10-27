@@ -9,7 +9,7 @@ name = "mapa-tematico-congresso-nlp"
 version = "0.1.0"
 description = "Modelagem de tópicos (BERTopic) e redes (NetworkX) com dados abertos da Câmara dos Deputados."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10, < 3.14"
 license = { text = "MIT" }
 authors = [{ name = "Luan Freitas", email = "luan.mgf@gmail.com" }]
 keywords = [
@@ -83,6 +83,7 @@ Repository = "https://github.com/luanfreitas5/mapa-tematico-congresso-nlp"
 # CLAUDE.md, "Import style"). O pytest resolve os imports por
 # `pythonpath = ["src"]` e `src/main.py` insere `src/` em `sys.path`.
 package = false
+default-groups = ["dev", "quality", "docs"]  # `uv sync` (e `uv sync --dev`) instala todos
 required-environments = [
     "sys_platform == 'win32' and platform_machine == 'AMD64'",
     "sys_platform == 'linux' and platform_machine == 'x86_64'",
@@ -99,38 +100,32 @@ torch = { index = "pytorch-cu128" }
 # --- Dependências de desenvolvimento (não publicadas; PEP 735) --------------
 [dependency-groups]
 dev = [
-    # Lint + format
-    "ruff>=0.5",
-    # Type checking (roda no CI, não no pre-commit)
-    "basedpyright>=1.13",
-    # Segurança (roda no CI)
-    "bandit>=1.7",
-    "pip-audit>=2.7",
-    "detect-secrets>=1.5",
-    # Qualidade / complexidade / docstrings
-    "vulture>=2.11",
-    "refurb>=2.0",
-    "xenon>=0.9",
-    "radon>=6.0",
-    "interrogate>=1.7",
-    # Testes
+    "ruff>=0.5",                    # lint + format
+    "basedpyright>=1.13",           # type checking (roda no CI)
     "pytest>=8.2",
     "pytest-cov>=5.0",
     "hypothesis>=6.100",
+    "pre-commit>=3.7",
+    "commitizen>=4.0",
+    "detect-secrets>=1.5",
     # Notebooks
     "nbqa>=1.8",
     "nbstripout>=0.7",
     "ipykernel>=6.29",
     "jupyterlab>=4.2",
-    # Workflow
-    "pre-commit>=3.7",
-    "commitizen>=4.0",
-    # Documentação
-    "mkdocs-material>=9.5",
-    "mkdocstrings[python]>=0.25",
     # Profiling (use sob demanda)
     "scalene>=1.5",
 ]
+quality = [
+    "bandit[toml]>=1.7",
+    "vulture>=2.11",
+    "refurb>=2.0",
+    "xenon>=0.9",
+    "radon>=6.0",
+    "interrogate>=1.7",
+    "pip-audit>=2.7",
+]
+docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.25"]
 
 # =============================================================================
 # RUFF — lint + format (substitui flake8/isort/black)
@@ -159,8 +154,14 @@ select = [
     "RUF",    # regras do próprio Ruff
     "PL",     # pylint (subconjunto)
     "TRY",    # tryceratops — boas práticas de exceções
+    "S",      # flake8-bandit
+    "D",      # pydocstyle (docstrings NumPy em pt-BR)
+    "PD",     # pandas-vet
 ]
 ignore = [
+    "D203",    # conflita com D211
+    "D213",    # conflita com D212
+    "D401",    # exige modo imperativo em inglês; docstrings são pt-BR
     "PLR0913", # muitos argumentos — comum em pipelines
     "PLR0917", # idem (posicionais)
     "PLR2004", # "magic value" em comparação — thresholds de modelo
@@ -196,7 +197,7 @@ known-first-party = [
 convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ARG", "PLR2004", "S101"]
+"tests/*" = ["ARG", "D", "PLR2004", "S101", "S311"]
 "notebooks/*" = ["E402", "F401", "F821", "NPY002"]
 "src/main.py" = ["E402"]        # `src/` entra no sys.path antes de importar
 
@@ -250,6 +251,7 @@ ignore = [
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = [
+    "-ra",
     "--strict-markers",
     "--cov=src",
     "--cov-report=term-missing",
@@ -280,6 +282,7 @@ omit = [
 [tool.coverage.report]
 fail_under = 80
 show_missing = true
+exclude_also = ["if __name__ == .__main__.:"]
 
 # =============================================================================
 # INTERROGATE — cobertura de docstrings
@@ -295,11 +298,8 @@ exclude = ["tests", "notebooks", "docs"]
 # =============================================================================
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.1.0"
-version_files = [
-    "pyproject.toml:version",
-    "configs/config.yaml:version",
-]
+version_provider = "pep621"
+version_files = ["configs/config.yaml:version"]
 tag_format = "v$version"
 update_changelog_on_bump = true
 major_version_zero = true  # remova quando sair do 0.x

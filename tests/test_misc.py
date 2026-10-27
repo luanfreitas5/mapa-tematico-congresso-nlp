@@ -9,7 +9,7 @@ import polars as pl
 import pytest
 
 from config.environment import seed_everything
-from config.logging import configure_logging
+from config.logging import _rename_rotated, configure_logging
 from main import parse_args
 from visualization.figures import plot_centrality_ranking, plot_topics_over_time, save_figure
 
@@ -34,19 +34,36 @@ def test_seed_everything_makes_random_deterministic():
     assert os.environ["PYTHONHASHSEED"] == "7"
 
 
-def test_configure_logging_creates_daily_file(base_settings, tmp_path):
-    """O arquivo de log do dia é criado no diretório configurado."""
-    configure_logging(base_settings.logging, tmp_path)
+def test_configure_logging_is_idempotent_and_overrides_level(tmp_path):
+    """Chamar duas vezes não duplica handlers e ``level`` sobrescreve o root."""
+    config_path = tmp_path / "logging.yaml"
+    config_path.write_text(
+        "version: 1\n"
+        "disable_existing_loggers: false\n"
+        "handlers:\n"
+        "  console:\n"
+        '    "()": config.logging.create_console_handler\n'
+        "root:\n"
+        "  level: INFO\n"
+        "  handlers: [console]\n",
+        encoding="utf-8",
+    )
     root = logging.getLogger()
+    saved_handlers, saved_level = root.handlers[:], root.level
     try:
-        logging.getLogger("teste").info("mensagem de teste")
-        for handler in root.handlers:
-            handler.flush()
-        assert list(tmp_path.glob("log_*.log"))
+        configure_logging("debug", config_path)
+        configure_logging("debug", config_path)
+        assert len(root.handlers) == 1
+        assert root.level == logging.DEBUG
     finally:
-        for handler in root.handlers[:]:  # libera o arquivo (necessário no Windows)
-            handler.close()
-            root.removeHandler(handler)
+        root.handlers[:] = saved_handlers
+        root.setLevel(saved_level)
+        logging.captureWarnings(False)
+
+
+def test_daily_file_handler_renames_rotated_file(tmp_path):
+    """O arquivo rotacionado recebe o nome ``log_YYYY-MM-DD.log``."""
+    assert _rename_rotated(str(tmp_path / "log.log.2026-09-27")).endswith("log_2026-09-27.log")
 
 
 def test_figures_are_saved_in_png_and_svg(tmp_path):
