@@ -192,7 +192,7 @@ jinja2==3.1.6
     #   scalene
 json5==0.17.3
     # via jupyterlab-server
-jsonpointer==3.6
+jsonpointer==3.7
     # via jsonschema
 jsonschema==4.26.0
     # via
