@@ -420,7 +420,7 @@ pillow==12.3.0 ; python_full_version < '3.11'
     # via matplotlib
 pillow==13.0.0 ; python_full_version >= '3.11'
     # via matplotlib
-pip==26.2.2
+pip==26.3
     # via pip-api
 pip-api==0.0.35
     # via pip-audit
